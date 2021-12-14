@@ -272,3 +272,42 @@ include::sample[dir="snippets/ide/eclipse/groovy",files="build.gradle[tags=wtp-w
 include::sample[dir="snippets/ide/eclipse/kotlin",files="build.gradle.kts[tags=wtp-with-xml]"]
 ====
 
+[[sec:test-sources]]
+Separation of test and production classpath entries
+
+Eclipse defines only one classpath per project which implies limitations on how Gradle projects can be mapped.
+Eclipse 4.8 introduced the concept of link:https://www.eclipse.org/eclipse/news/4.8/jdt.php#jdt-test-sources[test sources].
+This feature allows the Eclipse plugin to define better separation between test and non-test sources.
+
+The Eclipse classpath consists of classpath entries: source directories, jar files, project dependencies, etc.
+Each classpath entry can have a a list of classpath attributes, which are string key-value pairs.
+There are two classpath attribute relevant for test sources: `test` and `without_test_code`, both of which can have `true` or `false` as values.
+
+The meaning of those classpath attributes are as follows:
+
+- source directory: if `test=true` then it contains test sources otherwise it contains production sources. Production sources don't have access to test sources but test sources do have access to production sources.
+- jar file: if `test=true` then it is visible for test sources only.
+- project dependency: `test=true` means the classes in the target project is visible for test sources only. If `without_test_sources=false` then the test sources of the target project are also accessible.
+
+The following rules apply for the test attribute declaration when generating the Eclipse classpath:
+
+- Jar files and project dependencies have the `test=true` attribute if they are present only in test dependency configuration. By default a dependency configuration is a test dependency configuration if its name contains the 'test' substring (case ignored) or if it's declared via the JVM test suite DSL.
+- Project dependencies have the `without_test_sources=false` attribute if the target project applies the java-test-fixtures plugin.
+
+You can customize the test source sets and configurations:
+
+.Customizing test sources
+====
+include::sample[dir="snippets/ide/eclipse/groovy",files="build.gradle[tags=test-sources]"]
+include::sample[dir="snippets/ide/eclipse/kotlin",files="build.gradle.kts[tags=test-sources]"]
+====
+
+You can also customize if a project should expose test sources to upstream project dependencies via the `containsTestFixtures` property.
+
+.Customizing test fixtures
+====
+include::sample[dir="snippets/ide/eclipse/groovy",files="build.gradle[tags=test-fixtures]"]
+include::sample[dir="snippets/ide/eclipse/kotlin",files="build.gradle.kts[tags=test-fixtures]"]
+====
+
+Note, that this configuration also applies to the classpath of Buildship projects.
