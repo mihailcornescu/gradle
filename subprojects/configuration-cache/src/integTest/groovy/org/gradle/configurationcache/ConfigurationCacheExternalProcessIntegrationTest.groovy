@@ -22,7 +22,6 @@ import org.gradle.api.Project
 import org.gradle.api.initialization.Settings
 import org.gradle.api.tasks.TaskAction
 import org.gradle.configurationcache.fixtures.ExternalProcessFixture
-import org.gradle.configurationcache.fixtures.ExternalProcessFixture.SnippetsFactory
 import org.gradle.process.ExecOperations
 import org.gradle.workers.WorkAction
 import org.gradle.workers.WorkParameters
