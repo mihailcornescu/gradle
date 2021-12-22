@@ -424,6 +424,256 @@ class ConfigurationCacheExternalProcessInstrumentationIntegrationTest extends Ab
         title = processCreator.replace("command", varInitializer.description)
     }
 
+    def "calling an unrelated method is allowed in groovy build script"() {
+        given:
+        def configurationCache = newConfigurationCacheFixture()
+
+        generateClassesWithClashingMethods()
+
+        buildFile << """
+        import java.io.*
+        import static ProcessGroovyMethodsExecute.execute
+
+        ProcessGroovyMethodsExecute.execute("some string")
+        ProcessGroovyMethodsExecute.execute("some string", ["array"] as String[], file("test"))
+        ProcessGroovyMethodsExecute.execute("some string", ["array"], file("test"))
+
+        ProcessGroovyMethodsExecute.execute(["some", "string"] as String[])
+        ProcessGroovyMethodsExecute.execute(["some", "string"] as String[], ["array"] as String[], file("test"))
+        ProcessGroovyMethodsExecute.execute(["some", "string"] as String[], ["array"], file("test"))
+
+        ProcessGroovyMethodsExecute.execute(["some", "string"])
+        ProcessGroovyMethodsExecute.execute(["some", "string"], ["array"] as String[], file("test"))
+        ProcessGroovyMethodsExecute.execute(["some", "string"], ["array"], file("test"))
+
+        execute("some string")
+        execute("some string", ["array"] as String[], file("test"))
+        execute("some string", ["array"], file("test"))
+
+        execute(["some", "string"] as String[])
+        execute(["some", "string"] as String[], ["array"] as String[], file("test"))
+        execute(["some", "string"] as String[], ["array"], file("test"))
+
+        execute(["some", "string"])
+        execute(["some", "string"], ["array"] as String[], file("test"))
+        execute(["some", "string"], ["array"], file("test"))
+
+        def e = new RuntimeExec()
+        e.exec("some string")
+        e.exec("some string", ["array"] as String[])
+        e.exec("some string", ["array"] as String[], file("test"))
+        e.exec(["some", "string"] as String[])
+        e.exec(["some", "string"] as String[], ["array"] as String[])
+        e.exec(["some", "string"] as String[], ["array"] as String[], file("test"))
+
+
+        def s = new ProcessBuilderStart()
+        s.start()
+        """
+
+        when:
+        configurationCacheRun("-q", ":help")
+
+        then:
+        configurationCache.assertStateStored()
+    }
+
+    def "calling an unrelated method is allowed in static groovy build script"() {
+        given:
+        def configurationCache = newConfigurationCacheFixture()
+
+        generateClassesWithClashingMethods()
+
+        buildFile << """
+        import java.io.*
+        import static ProcessGroovyMethodsExecute.execute
+
+        @groovy.transform.CompileStatic
+        def runStuff() {
+            ProcessGroovyMethodsExecute.execute("some string")
+            ProcessGroovyMethodsExecute.execute("some string", ["array"] as String[], file("test"))
+            ProcessGroovyMethodsExecute.execute("some string", ["array"], file("test"))
+
+            ProcessGroovyMethodsExecute.execute(["some", "string"] as String[])
+            ProcessGroovyMethodsExecute.execute(["some", "string"] as String[], ["array"] as String[], file("test"))
+            ProcessGroovyMethodsExecute.execute(["some", "string"] as String[], ["array"], file("test"))
+
+            ProcessGroovyMethodsExecute.execute(["some", "string"])
+            ProcessGroovyMethodsExecute.execute(["some", "string"], ["array"] as String[], file("test"))
+            ProcessGroovyMethodsExecute.execute(["some", "string"], ["array"], file("test"))
+
+            execute("some string")
+            execute("some string", ["array"] as String[], file("test"))
+            execute("some string", ["array"], file("test"))
+
+            execute(["some", "string"] as String[])
+            execute(["some", "string"] as String[], ["array"] as String[], file("test"))
+            execute(["some", "string"] as String[], ["array"], file("test"))
+
+            execute(["some", "string"])
+            execute(["some", "string"], ["array"] as String[], file("test"))
+            execute(["some", "string"], ["array"], file("test"))
+
+            def e = new RuntimeExec()
+            e.exec("some string")
+            e.exec("some string", ["array"] as String[])
+            e.exec("some string", ["array"] as String[], file("test"))
+            e.exec(["some", "string"] as String[])
+            e.exec(["some", "string"] as String[], ["array"] as String[])
+            e.exec(["some", "string"] as String[], ["array"] as String[], file("test"))
+
+
+            def s = new ProcessBuilderStart()
+            s.start()
+        }
+
+        runStuff()
+        """
+
+        when:
+        configurationCacheRun("-q", ":help")
+
+        then:
+        configurationCache.assertStateStored()
+    }
+
+    def "calling an unrelated method is allowed in kotlin build script"() {
+        given:
+        def configurationCache = newConfigurationCacheFixture()
+
+        generateClassesWithClashingMethods()
+
+        buildKotlinFile("""
+        ProcessGroovyMethodsExecute.execute("some string")
+        ProcessGroovyMethodsExecute.execute("some string", arrayOf("array"), file("test"))
+        ProcessGroovyMethodsExecute.execute("some string", listOf("array"), file("test"))
+
+        ProcessGroovyMethodsExecute.execute(arrayOf("some", "string"))
+        ProcessGroovyMethodsExecute.execute(arrayOf("some", "string"), arrayOf("string"), file("test"))
+        ProcessGroovyMethodsExecute.execute(arrayOf("some", "string"), listOf("array"), file("test"))
+
+        ProcessGroovyMethodsExecute.execute(listOf("some", "string"))
+        ProcessGroovyMethodsExecute.execute(listOf("some", "string"), arrayOf("string"), file("test"))
+        ProcessGroovyMethodsExecute.execute(listOf("some", "string"), listOf("array"), file("test"))
+
+        val e = RuntimeExec()
+        e.exec("some string")
+        e.exec("some string", arrayOf("string"))
+        e.exec("some string", arrayOf("string"), file("test"))
+        e.exec(arrayOf("some", "string"))
+        e.exec(arrayOf("some", "string"), arrayOf("string"))
+        e.exec(arrayOf("some", "string"), arrayOf("string"), file("test"))
+
+        val s = ProcessBuilderStart()
+        s.start()
+
+        """)
+
+        when:
+        configurationCacheRun("-q", ":help")
+
+        then:
+        configurationCache.assertStateStored()
+    }
+
+    def "calling an unrelated method is allowed in in java build code"() {
+        given:
+        def configurationCache = newConfigurationCacheFixture()
+
+        generateClassesWithClashingMethods()
+
+        file("buildSrc/src/main/java/SneakyPlugin.java") << """
+        import org.gradle.api.*;
+        import java.io.*;
+        import java.util.*;
+
+        public class SneakyPlugin implements Plugin<Project> {
+            @Override
+            public void apply(Project project) {
+                String[] envpArray = new String[] { "array" };
+                List<?> envpList = Arrays.asList(envpArray);
+                String[] commandArray = new String[] { "some", "string" };
+                List<?> commandList = Arrays.asList(commandArray);
+
+                ProcessGroovyMethodsExecute.execute("some string");
+                ProcessGroovyMethodsExecute.execute("some string", envpArray, project.file("test"));
+                ProcessGroovyMethodsExecute.execute("some string", envpList, project.file("test"));
+
+                ProcessGroovyMethodsExecute.execute(commandArray);
+                ProcessGroovyMethodsExecute.execute(commandArray, envpArray, project.file("test"));
+                ProcessGroovyMethodsExecute.execute(commandArray, envpList, project.file("test"));
+
+                ProcessGroovyMethodsExecute.execute(commandList);
+                ProcessGroovyMethodsExecute.execute(commandList, envpArray, project.file("test"));
+                ProcessGroovyMethodsExecute.execute(commandList, envpList, project.file("test"));
+
+                RuntimeExec e = new RuntimeExec();
+                e.exec("some string");
+                e.exec("some string", envpArray);
+                e.exec("some string", envpArray, project.file("test"));
+                e.exec(commandArray);
+                e.exec(commandArray, envpArray);
+                e.exec(commandArray, envpArray, project.file("test"));
+
+                ProcessBuilderStart s = new ProcessBuilderStart();
+                s.start();
+            }
+        }
+        """
+        buildFile("""
+            apply plugin: SneakyPlugin
+        """)
+
+        when:
+        configurationCacheRun("-q", ":help")
+
+        then:
+        configurationCache.assertStateStored()
+    }
+
+    private void generateClassesWithClashingMethods() {
+        def sourceFolder = testDirectory.createDir("buildSrc/src/main/java")
+
+        sourceFolder.file("ProcessGroovyMethodsExecute.java") << """
+            import java.io.*;
+            import java.util.*;
+
+            public class ProcessGroovyMethodsExecute {
+
+                public static Process execute(String command) { return null; }
+                public static Process execute(String command, String[] envp, File file) { return null; }
+                public static Process execute(String command, List<?> envp, File file) { return null; }
+                public static Process execute(String[] command) { return null; }
+                public static Process execute(String[] command, String[] envp, File file) { return null; }
+                public static Process execute(String[] command, List<?> envp, File file) { return null; }
+                public static Process execute(List<?> command) { return null; }
+                public static Process execute(List<?> command, String[] envp, File file) { return null; }
+                public static Process execute(List<?> command, List<?> envp, File file) { return null; }
+            }
+        """
+
+        sourceFolder.file("RuntimeExec.java") << """
+            import java.io.*;
+            import java.util.*;
+
+            public class RuntimeExec {
+                public Process exec(String command) { return null; }
+                public Process exec(String command, String[] envp) { return null; }
+                public Process exec(String command, String[] envp, File file) { return null; }
+                public Process exec(String command, List<?> envp, File file) { return null; }
+                public Process exec(String[] command) { return null; }
+                public Process exec(String[] command, String[] envp) { return null; }
+                public Process exec(String[] command, String[] envp, File file) { return null; }
+            }
+        """
+
+        sourceFolder.file("ProcessBuilderStart.java") << """
+            public class ProcessBuilderStart {
+                public void start() {}
+            }
+        """
+    }
+
     private static String getPwd() {
         return "tmp"
     }
