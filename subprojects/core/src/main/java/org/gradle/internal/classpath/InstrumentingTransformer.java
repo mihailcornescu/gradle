@@ -40,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 
 import static org.gradle.internal.classanalysis.AsmConstants.ASM_LEVEL;
@@ -389,40 +390,12 @@ class InstrumentingTransformer implements CachedClasspathTransformer.Transform {
                 _INVOKESTATIC(INSTRUMENTED_TYPE, "getBoolean", RETURN_PRIMITIVE_BOOLEAN_FROM_STRING_STRING);
                 return true;
             } else if (owner.equals(PROCESS_GROOVY_METHODS_TYPE.getInternalName()) && name.equals("execute")) {
-                String methodSignature;
-                if (descriptor.equals(RETURN_PROCESS_FROM_STRING)) {
-                    // execute(String)
-                    methodSignature = RETURN_PROCESS_FROM_STRING_STRING;
-                } else if (descriptor.equals(RETURN_PROCESS_FROM_STRING_ARRAY)) {
-                    // execute(String[])
-                    methodSignature = RETURN_PROCESS_FROM_STRING_ARRAY_STRING;
-                } else if (descriptor.equals(RETURN_PROCESS_FROM_LIST)) {
-                    // execute(List)
-                    methodSignature = RETURN_PROCESS_FROM_LIST_STRING;
-                } else if (descriptor.equals(RETURN_PROCESS_FROM_STRING_STRING_ARRAY_FILE)) {
-                    // execute(String, String[], File)
-                    methodSignature = RETURN_PROCESS_FROM_STRING_STRING_ARRAY_FILE_STRING;
-                } else if (descriptor.equals(RETURN_PROCESS_FROM_STRING_ARRAY_STRING_ARRAY_FILE)) {
-                    // execute(String[], String[], File)
-                    methodSignature = RETURN_PROCESS_FROM_STRING_ARRAY_STRING_ARRAY_FILE_STRING;
-                } else if (descriptor.equals(RETURN_PROCESS_FROM_LIST_STRING_ARRAY_FILE)) {
-                    // execute(List, String[], File)
-                    methodSignature = RETURN_PROCESS_FROM_LIST_STRING_ARRAY_FILE_STRING;
-                } else if (descriptor.equals(RETURN_PROCESS_FROM_STRING_LIST_FILE)) {
-                    // execute(String, List, File)
-                    methodSignature = RETURN_PROCESS_FROM_STRING_LIST_FILE_STRING;
-                } else if (descriptor.equals(RETURN_PROCESS_FROM_STRING_ARRAY_LIST_FILE)) {
-                    // execute(String[], List, File)
-                    methodSignature = RETURN_PROCESS_FROM_STRING_ARRAY_LIST_FILE_STRING;
-                } else if (descriptor.equals(RETURN_PROCESS_FROM_LIST_LIST_FILE)) {
-                    // execute(List, List, File)
-                    methodSignature = RETURN_PROCESS_FROM_LIST_LIST_FILE_STRING;
-                } else {
-                    // It is some signature of ProcessGroovyMethods.execute that we don't know about.
+                Optional<String> instrumentedDescriptor = getInstrumentedDescriptorForProcessGroovyMethodsExecuteDescriptor(descriptor);
+                if (!instrumentedDescriptor.isPresent()) {
                     return false;
                 }
                 _LDC(binaryClassNameOf(className));
-                _INVOKESTATIC(INSTRUMENTED_TYPE, "execute", methodSignature);
+                _INVOKESTATIC(INSTRUMENTED_TYPE, "execute", instrumentedDescriptor.get());
                 return true;
             }
             if (owner.equals(PROCESS_BUILDER_TYPE.getInternalName()) && name.equals("startPipeline") && descriptor.equals(RETURN_LIST_FROM_LIST)) {
@@ -439,25 +412,12 @@ class InstrumentingTransformer implements CachedClasspathTransformer.Transform {
         private boolean visitINVOKEVIRTUAL(String owner, String name, String descriptor) {
             // Runtime.exec(...)
             if (owner.equals(RUNTIME_TYPE.getInternalName()) && name.equals("exec")) {
-                String methodSignature;
-                if (descriptor.equals(RETURN_PROCESS_FROM_STRING)) {
-                    methodSignature = RETURN_PROCESS_FROM_RUNTIME_STRING_STRING;
-                } else if (descriptor.equals(RETURN_PROCESS_FROM_STRING_ARRAY)) {
-                    methodSignature = RETURN_PROCESS_FROM_RUNTIME_STRING_ARRAY_STRING;
-                } else if (descriptor.equals(RETURN_PROCESS_FROM_STRING_STRING_ARRAY)) {
-                    methodSignature = RETURN_PROCESS_FROM_RUNTIME_STRING_STRING_ARRAY_STRING;
-                } else if (descriptor.equals(RETURN_PROCESS_FROM_STRING_ARRAY_STRING_ARRAY)) {
-                    methodSignature = RETURN_PROCESS_FROM_RUNTIME_STRING_ARRAY_STRING_ARRAY_STRING;
-                } else if (descriptor.equals(RETURN_PROCESS_FROM_STRING_STRING_ARRAY_FILE)) {
-                    methodSignature = RETURN_PROCESS_FROM_RUNTIME_STRING_STRING_ARRAY_FILE_STRING;
-                } else if (descriptor.equals(RETURN_PROCESS_FROM_STRING_ARRAY_STRING_ARRAY_FILE)) {
-                    methodSignature = RETURN_PROCESS_FROM_RUNTIME_STRING_ARRAY_STRING_ARRAY_FILE_STRING;
-                } else {
-                    // It is some signature of Runtime.exec that we don't know about.
+                Optional<String> instrumentedDescriptor = getInstrumentedDescriptorForRuntimeExecDescriptor(descriptor);
+                if (!instrumentedDescriptor.isPresent()) {
                     return false;
                 }
                 _LDC(binaryClassNameOf(className));
-                _INVOKESTATIC(INSTRUMENTED_TYPE, "exec", methodSignature);
+                _INVOKESTATIC(INSTRUMENTED_TYPE, "exec", instrumentedDescriptor.get());
                 return true;
             }
             if (owner.equals(PROCESS_BUILDER_TYPE.getInternalName())) {
@@ -468,6 +428,57 @@ class InstrumentingTransformer implements CachedClasspathTransformer.Transform {
                 }
             }
             return false;
+        }
+
+        private Optional<String> getInstrumentedDescriptorForProcessGroovyMethodsExecuteDescriptor(String descriptor) {
+            if (descriptor.equals(RETURN_PROCESS_FROM_STRING)) {
+                // execute(String)
+                return Optional.of(RETURN_PROCESS_FROM_STRING_STRING);
+            } else if (descriptor.equals(RETURN_PROCESS_FROM_STRING_ARRAY)) {
+                // execute(String[])
+                return Optional.of(RETURN_PROCESS_FROM_STRING_ARRAY_STRING);
+            } else if (descriptor.equals(RETURN_PROCESS_FROM_LIST)) {
+                // execute(List)
+                return Optional.of(RETURN_PROCESS_FROM_LIST_STRING);
+            } else if (descriptor.equals(RETURN_PROCESS_FROM_STRING_STRING_ARRAY_FILE)) {
+                // execute(String, String[], File)
+                return Optional.of(RETURN_PROCESS_FROM_STRING_STRING_ARRAY_FILE_STRING);
+            } else if (descriptor.equals(RETURN_PROCESS_FROM_STRING_ARRAY_STRING_ARRAY_FILE)) {
+                // execute(String[], String[], File)
+                return Optional.of(RETURN_PROCESS_FROM_STRING_ARRAY_STRING_ARRAY_FILE_STRING);
+            } else if (descriptor.equals(RETURN_PROCESS_FROM_LIST_STRING_ARRAY_FILE)) {
+                // execute(List, String[], File)
+                return Optional.of(RETURN_PROCESS_FROM_LIST_STRING_ARRAY_FILE_STRING);
+            } else if (descriptor.equals(RETURN_PROCESS_FROM_STRING_LIST_FILE)) {
+                // execute(String, List, File)
+                return Optional.of(RETURN_PROCESS_FROM_STRING_LIST_FILE_STRING);
+            } else if (descriptor.equals(RETURN_PROCESS_FROM_STRING_ARRAY_LIST_FILE)) {
+                // execute(String[], List, File)
+                return Optional.of(RETURN_PROCESS_FROM_STRING_ARRAY_LIST_FILE_STRING);
+            } else if (descriptor.equals(RETURN_PROCESS_FROM_LIST_LIST_FILE)) {
+                // execute(List, List, File)
+                return Optional.of(RETURN_PROCESS_FROM_LIST_LIST_FILE_STRING);
+            }
+            // It is some signature of ProcessGroovyMethods.execute that we don't know about.
+            return Optional.empty();
+        }
+
+        private Optional<String> getInstrumentedDescriptorForRuntimeExecDescriptor(String descriptor) {
+            if (descriptor.equals(RETURN_PROCESS_FROM_STRING)) {
+                return Optional.of(RETURN_PROCESS_FROM_RUNTIME_STRING_STRING);
+            } else if (descriptor.equals(RETURN_PROCESS_FROM_STRING_ARRAY)) {
+                return Optional.of(RETURN_PROCESS_FROM_RUNTIME_STRING_ARRAY_STRING);
+            } else if (descriptor.equals(RETURN_PROCESS_FROM_STRING_STRING_ARRAY)) {
+                return Optional.of(RETURN_PROCESS_FROM_RUNTIME_STRING_STRING_ARRAY_STRING);
+            } else if (descriptor.equals(RETURN_PROCESS_FROM_STRING_ARRAY_STRING_ARRAY)) {
+                return Optional.of(RETURN_PROCESS_FROM_RUNTIME_STRING_ARRAY_STRING_ARRAY_STRING);
+            } else if (descriptor.equals(RETURN_PROCESS_FROM_STRING_STRING_ARRAY_FILE)) {
+                return Optional.of(RETURN_PROCESS_FROM_RUNTIME_STRING_STRING_ARRAY_FILE_STRING);
+            } else if (descriptor.equals(RETURN_PROCESS_FROM_STRING_ARRAY_STRING_ARRAY_FILE)) {
+                return Optional.of(RETURN_PROCESS_FROM_RUNTIME_STRING_ARRAY_STRING_ARRAY_FILE_STRING);
+            }
+            // It is some signature of Runtime.exec that we don't know about.
+            return Optional.empty();
         }
 
         @Override
