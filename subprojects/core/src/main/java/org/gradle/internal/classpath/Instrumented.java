@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -296,10 +297,6 @@ public class Instrumented {
         return obj;
     }
 
-    private static String getClassname(@Nullable Object obj) {
-        return obj != null ? obj.getClass().getName() : "null";
-    }
-
     private static String convertToString(Object arg) {
         if (arg instanceof CharSequence) {
             return ((CharSequence) arg).toString();
@@ -474,39 +471,32 @@ public class Instrumented {
 
         @Override
         public Object call(Object receiver, Object arg1) throws Throwable {
-            if (checkSignature(receiver, arg1, null, null)) {
-                return callExec(receiver, arg1, null, null);
+            Optional<Process> result = tryCallExec(receiver, arg1, null, null);
+            if (result.isPresent()) {
+                return result.get();
             }
             return super.call(receiver, arg1);
         }
 
         @Override
         public Object call(Object receiver, Object arg1, Object arg2) throws Throwable {
-            if (checkSignature(receiver, arg1, arg2, null)) {
-                return callExec(receiver, arg1, arg2, null);
+            Optional<Process> result = tryCallExec(receiver, arg1, arg2, null);
+            if (result.isPresent()) {
+                return result.get();
             }
             return super.call(receiver, arg1, arg2);
         }
 
         @Override
         public Object call(Object receiver, Object arg1, Object arg2, Object arg3) throws Throwable {
-            if (checkSignature(receiver, arg1, arg2, arg3)) {
-                return callExec(receiver, arg1, arg2, arg3);
+            Optional<Process> result = tryCallExec(receiver, arg1, arg2, arg3);
+            if (result.isPresent()) {
+                return result.get();
             }
             return super.call(receiver, arg1, arg2, arg3);
         }
 
-        private boolean checkSignature(@Nullable Object runtimeArg, @Nullable Object commandArg, @Nullable Object envpArg, @Nullable Object fileArg) {
-            runtimeArg = unwrap(runtimeArg);
-            commandArg = unwrap(commandArg);
-            envpArg = unwrap(envpArg);
-            fileArg = unwrap(fileArg);
-            return (runtimeArg instanceof Runtime) && (commandArg instanceof CharSequence || commandArg instanceof String[])
-                && (envpArg == null || envpArg instanceof String[])
-                && (fileArg == null || fileArg instanceof File);
-        }
-
-        private Process callExec(Object runtimeArg, Object commandArg, @Nullable Object envpArg, @Nullable Object fileArg) throws Throwable {
+        private Optional<Process> tryCallExec(Object runtimeArg, Object commandArg, @Nullable Object envpArg, @Nullable Object fileArg) throws Throwable {
             runtimeArg = unwrap(runtimeArg);
             commandArg = unwrap(commandArg);
             envpArg = unwrap(envpArg);
@@ -523,16 +513,15 @@ public class Instrumented {
 
                         if (commandArg instanceof CharSequence) {
                             String command = convertToString(commandArg);
-                            return exec(runtime, command, envp, file, array.owner.getName());
+                            return Optional.of(exec(runtime, command, envp, file, array.owner.getName()));
                         } else if (commandArg instanceof String[]) {
                             String[] command = (String[]) commandArg;
-                            return exec(runtime, command, envp, file, array.owner.getName());
+                            return Optional.of(exec(runtime, command, envp, file, array.owner.getName()));
                         }
                     }
                 }
             }
-            throw new AssertionError(String.format("Can't find suitable Runtime.exec for %s(%s, %s, %s)",
-                getClassname(runtimeArg), getClassname(commandArg), getClassname(envpArg), getClassname(fileArg)));
+            return Optional.empty();
         }
     }
 
@@ -547,8 +536,9 @@ public class Instrumented {
         // String|String[]|List.execute()
         @Override
         public Object call(Object receiver) throws Throwable {
-            if (checkSignature(receiver, null, null)) {
-                return callExecute(receiver, null, null);
+            Optional<Process> result = tryCallExecute(receiver, null, null);
+            if (result.isPresent()) {
+                return result.get();
             }
             return super.call(receiver);
         }
@@ -556,8 +546,11 @@ public class Instrumented {
         // ProcessGroovyMethod.execute(String|String[]|List)
         @Override
         public Object call(Object receiver, Object arg1) throws Throwable {
-            if (receiver.equals(ProcessGroovyMethods.class) && checkSignature(arg1, null, null)) {
-                return callExecute(arg1, null, null);
+            if (receiver.equals(ProcessGroovyMethods.class)) {
+                Optional<Process> process = tryCallExecute(arg1, null, null);
+                if (process.isPresent()) {
+                    return process.get();
+                }
             }
             return super.call(receiver, arg1);
         }
@@ -565,8 +558,11 @@ public class Instrumented {
         // static import execute(String|String[]|List)
         @Override
         public Object callStatic(Class receiver, Object arg1) throws Throwable {
-            if (receiver.equals(ProcessGroovyMethods.class) && checkSignature(arg1, null, null)) {
-                return callExecute(arg1, null, null);
+            if (receiver.equals(ProcessGroovyMethods.class)) {
+                Optional<Process> process = tryCallExecute(arg1, null, null);
+                if (process.isPresent()) {
+                    return process.get();
+                }
             }
             return super.callStatic(receiver, arg1);
         }
@@ -574,8 +570,9 @@ public class Instrumented {
         // String|String[]|List.execute(String[]|List, File)
         @Override
         public Object call(Object receiver, @Nullable Object arg1, @Nullable Object arg2) throws Throwable {
-            if (checkSignature(receiver, arg1, arg2)) {
-                return callExecute(receiver, arg1, arg2);
+            Optional<Process> result = tryCallExecute(receiver, arg1, arg2);
+            if (result.isPresent()) {
+                return result.get();
             }
             return super.call(receiver, arg1, arg2);
         }
@@ -583,8 +580,11 @@ public class Instrumented {
         // ProcessGroovyMethod.execute(String|String[]|List, String[]|List, File)
         @Override
         public Object call(Object receiver, Object arg1, @Nullable Object arg2, @Nullable Object arg3) throws Throwable {
-            if (receiver.equals(ProcessGroovyMethods.class) && checkSignature(arg1, arg2, arg3)) {
-                return callExecute(arg1, arg2, arg3);
+            if (receiver.equals(ProcessGroovyMethods.class)) {
+                Optional<Process> result = tryCallExecute(arg1, arg2, arg3);
+                if (result.isPresent()) {
+                    return result.get();
+                }
             }
             return super.call(receiver, arg1, arg2, arg3);
         }
@@ -592,22 +592,16 @@ public class Instrumented {
         // static import execute(String|String[]|List, String[]|List, File)
         @Override
         public Object callStatic(Class receiver, Object arg1, @Nullable Object arg2, @Nullable Object arg3) throws Throwable {
-            if (receiver.equals(ProcessGroovyMethods.class) && checkSignature(arg1, arg2, arg3)) {
-                return callExecute(arg1, arg2, arg3);
+            if (receiver.equals(ProcessGroovyMethods.class)) {
+                Optional<Process> result = tryCallExecute(arg1, arg2, arg3);
+                if (result.isPresent()) {
+                    return result.get();
+                }
             }
             return super.callStatic(receiver, arg1, arg2, arg3);
         }
 
-        private boolean checkSignature(@Nullable Object commandArg, @Nullable Object envpArg, @Nullable Object fileArg) {
-            commandArg = unwrap(commandArg);
-            envpArg = unwrap(envpArg);
-            fileArg = unwrap(fileArg);
-            return (commandArg instanceof CharSequence || commandArg instanceof String[] || commandArg instanceof List)
-                && (envpArg == null || envpArg instanceof String[] || envpArg instanceof List)
-                && (fileArg == null || fileArg instanceof File);
-        }
-
-        private Process callExecute(Object commandArg, @Nullable Object envpArg, @Nullable Object fileArg) throws Throwable {
+        private Optional<Process> tryCallExecute(Object commandArg, @Nullable Object envpArg, @Nullable Object fileArg) throws Throwable {
             commandArg = unwrap(commandArg);
             envpArg = unwrap(envpArg);
             fileArg = unwrap(fileArg);
@@ -619,29 +613,29 @@ public class Instrumented {
                     String command = convertToString(commandArg);
 
                     if (envpArg == null || envpArg instanceof String[]) {
-                        return execute(command, (String[]) envpArg, file, array.owner.getName());
+                        return Optional.of(execute(command, (String[]) envpArg, file, array.owner.getName()));
                     } else if (envpArg instanceof List) {
-                        return execute(command, (List<?>) envpArg, file, array.owner.getName());
+                        return Optional.of(execute(command, (List<?>) envpArg, file, array.owner.getName()));
                     }
                 } else if (commandArg instanceof String[]) {
                     String[] command = (String[]) commandArg;
 
                     if (envpArg == null || envpArg instanceof String[]) {
-                        return execute(command, (String[]) envpArg, file, array.owner.getName());
+                        return Optional.of(execute(command, (String[]) envpArg, file, array.owner.getName()));
                     } else if (envpArg instanceof List) {
-                        return execute(command, (List<?>) envpArg, file, array.owner.getName());
+                        return Optional.of(execute(command, (List<?>) envpArg, file, array.owner.getName()));
                     }
                 } else if (commandArg instanceof List) {
                     List<?> command = (List<?>) commandArg;
 
                     if (envpArg == null || envpArg instanceof String[]) {
-                        return execute(command, (String[]) envpArg, file, array.owner.getName());
+                        return Optional.of(execute(command, (String[]) envpArg, file, array.owner.getName()));
                     } else if (envpArg instanceof List) {
-                        return execute(command, (List<?>) envpArg, file, array.owner.getName());
+                        return Optional.of(execute(command, (List<?>) envpArg, file, array.owner.getName()));
                     }
                 }
             }
-            throw new AssertionError(String.format("Can't find suitable ProcessGroovyMethods.execute for (%s, %s, %s)", getClassname(commandArg), getClassname(envpArg), getClassname(fileArg)));
+            return Optional.empty();
         }
     }
 
