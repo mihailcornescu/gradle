@@ -40,9 +40,7 @@ import static org.gradle.configurationcache.fixtures.ExternalProcessFixture.stri
 class ConfigurationCacheExternalProcessIntegrationTest extends AbstractConfigurationCacheIntegrationTest {
     ExternalProcessFixture execOperationsFixture = new ExternalProcessFixture(testDirectory)
 
-    def "using #snippetsFactory.summary in #location.toLowerCase() #file is a problem"(SnippetsFactory snippetsFactory,
-                                                                                       String file,
-                                                                                       String location) {
+    def "using #snippetsFactory.summary in #location.toLowerCase() #file is a problem"() {
         given:
         def snippets = snippetsFactory.newSnippets(execOperationsFixture)
         testDirectory.file(file) << """
@@ -103,7 +101,7 @@ class ConfigurationCacheExternalProcessIntegrationTest extends AbstractConfigura
         runtimeExec().kotlin        | "buildSrc/settings.gradle.kts" | "Settings file"
     }
 
-    def "using #snippetsFactory.summary in initialization script #file is a problem"(SnippetsFactory snippetsFactory, String file) {
+    def "using #snippetsFactory.summary in initialization script #file is a problem"() {
         given:
         def snippets = snippetsFactory.newSnippets(execOperationsFixture)
 
@@ -137,8 +135,7 @@ class ConfigurationCacheExternalProcessIntegrationTest extends AbstractConfigura
         runtimeExec().kotlin        | "exec.init.gradle.kts"
     }
 
-    def "using #snippetsFactory.summary in included plugin settings #file is a problem"(SnippetsFactory snippetsFactory,
-                                                                                        String file) {
+    def "using #snippetsFactory.summary in included plugin settings #file is a problem"() {
         given:
         def snippets = snippetsFactory.newSnippets(execOperationsFixture)
         testDirectory.file(file) << """
@@ -175,8 +172,7 @@ class ConfigurationCacheExternalProcessIntegrationTest extends AbstractConfigura
         runtimeExec().kotlin        | "included/settings.gradle.kts"
     }
 
-    def "using #snippetsFactory.summary in included plugin build #file is a problem"(SnippetsFactory snippetsFactory,
-                                                                                     String file) {
+    def "using #snippetsFactory.summary in included plugin build #file is a problem"() {
         given:
         def snippets = snippetsFactory.newSnippets(execOperationsFixture)
         def includedBuildFile = testDirectory.file(file)
@@ -225,9 +221,7 @@ class ConfigurationCacheExternalProcessIntegrationTest extends AbstractConfigura
         runtimeExec().kotlin        | "included/build.gradle.kts"
     }
 
-    def "using #snippetsFactory.summary in convention plugin #file is a problem"(SnippetsFactory snippetsFactory,
-                                                                                 String file,
-                                                                                 String plugin) {
+    def "using #snippetsFactory.summary in convention plugin #file is a problem"() {
         given:
         def snippets = snippetsFactory.newSnippets(execOperationsFixture)
         testDirectory.file("buildSrc/build.gradle.kts") << """
@@ -262,20 +256,22 @@ class ConfigurationCacheExternalProcessIntegrationTest extends AbstractConfigura
         }
 
         where:
-        snippetsFactory             | file                                                         | plugin
-        exec().groovy               | "buildSrc/src/main/groovy/test-convention-plugin.gradle"     | "groovy-gradle-plugin"
-        javaexec().groovy           | "buildSrc/src/main/groovy/test-convention-plugin.gradle"     | "groovy-gradle-plugin"
-        processBuilder().groovy     | "buildSrc/src/main/groovy/test-convention-plugin.gradle"     | "groovy-gradle-plugin"
-        stringArrayExecute().groovy | "buildSrc/src/main/groovy/test-convention-plugin.gradle"     | "groovy-gradle-plugin"
-        runtimeExec().groovy        | "buildSrc/src/main/groovy/test-convention-plugin.gradle"     | "groovy-gradle-plugin"
-        exec().kotlin               | "buildSrc/src/main/kotlin/test-convention-plugin.gradle.kts" | "kotlin-dsl"
-        javaexec().kotlin           | "buildSrc/src/main/kotlin/test-convention-plugin.gradle.kts" | "kotlin-dsl"
-        processBuilder().kotlin     | "buildSrc/src/main/kotlin/test-convention-plugin.gradle.kts" | "kotlin-dsl"
-        stringArrayExecute().kotlin | "buildSrc/src/main/kotlin/test-convention-plugin.gradle.kts" | "kotlin-dsl"
-        runtimeExec().kotlin        | "buildSrc/src/main/kotlin/test-convention-plugin.gradle.kts" | "kotlin-dsl"
+        snippetsFactory             | file
+        exec().groovy               | "buildSrc/src/main/groovy/test-convention-plugin.gradle"
+        javaexec().groovy           | "buildSrc/src/main/groovy/test-convention-plugin.gradle"
+        processBuilder().groovy     | "buildSrc/src/main/groovy/test-convention-plugin.gradle"
+        stringArrayExecute().groovy | "buildSrc/src/main/groovy/test-convention-plugin.gradle"
+        runtimeExec().groovy        | "buildSrc/src/main/groovy/test-convention-plugin.gradle"
+        exec().kotlin               | "buildSrc/src/main/kotlin/test-convention-plugin.gradle.kts"
+        javaexec().kotlin           | "buildSrc/src/main/kotlin/test-convention-plugin.gradle.kts"
+        processBuilder().kotlin     | "buildSrc/src/main/kotlin/test-convention-plugin.gradle.kts"
+        stringArrayExecute().kotlin | "buildSrc/src/main/kotlin/test-convention-plugin.gradle.kts"
+        runtimeExec().kotlin        | "buildSrc/src/main/kotlin/test-convention-plugin.gradle.kts"
+
+        plugin = file.endsWith(".kts") ? "kotlin-dsl" : "groovy-gradle-plugin"
     }
 
-    def "using #snippetsFactory.summary in java project plugin application is a problem"(SnippetsFactory snippetsFactory) {
+    def "using #snippetsFactory.summary in java project plugin application is a problem"() {
         given:
         def snippets = snippetsFactory.newSnippets(execOperationsFixture)
         testDirectory.file("buildSrc/src/main/java/SneakyPlugin.java") << """
@@ -320,7 +316,7 @@ class ConfigurationCacheExternalProcessIntegrationTest extends AbstractConfigura
         runtimeExec().java                   | _
     }
 
-    def "using #snippetsFactory.summary in java settings plugin application is a problem"(SnippetsFactory snippetsFactory) {
+    def "using #snippetsFactory.summary in java settings plugin application is a problem"() {
         given:
         def snippets = snippetsFactory.newSnippets(execOperationsFixture)
         testDirectory.file("included/settings.gradle") << """
@@ -388,7 +384,7 @@ class ConfigurationCacheExternalProcessIntegrationTest extends AbstractConfigura
         runtimeExec().java                   | _
     }
 
-    def "using #snippetsFactory.summary in task configuration is a problem"(SnippetsFactory snippetsFactory) {
+    def "using #snippetsFactory.summary in task configuration is a problem"() {
         given:
         def snippets = snippetsFactory.newSnippets(execOperationsFixture)
         testDirectory.file("buildSrc/src/main/java/SneakyTask.java") << """
@@ -435,7 +431,7 @@ class ConfigurationCacheExternalProcessIntegrationTest extends AbstractConfigura
         runtimeExec().java                   | "Class `SneakyTask`"
     }
 
-    def "using #snippetsFactory.summary in task action is not a problem"(SnippetsFactory snippetsFactory) {
+    def "using #snippetsFactory.summary in task action is not a problem"() {
         given:
         def snippets = snippetsFactory.newSnippets(execOperationsFixture)
         testDirectory.file("buildSrc/src/main/java/SneakyTask.java") << """
@@ -475,7 +471,7 @@ class ConfigurationCacheExternalProcessIntegrationTest extends AbstractConfigura
         runtimeExec().java                   | _
     }
 
-    def "using #snippetsFactory.summary in task action of buildSrc is not a problem"(SnippetsFactory snippetsFactory) {
+    def "using #snippetsFactory.summary in task action of buildSrc is not a problem"() {
         given:
         def snippets = snippetsFactory.newSnippets(execOperationsFixture)
         testDirectory.file("buildSrc/build.gradle") << """
@@ -518,7 +514,7 @@ class ConfigurationCacheExternalProcessIntegrationTest extends AbstractConfigura
         runtimeExec().groovy                   | _
     }
 
-    def "using #snippetsFactory.summary in worker task action of buildSrc is not a problem"(SnippetsFactory snippetsFactory) {
+    def "using #snippetsFactory.summary in worker task action of buildSrc is not a problem"() {
         given:
         def snippets = snippetsFactory.newSnippets(execOperationsFixture)
         testDirectory.file("buildSrc/build.gradle") << """
@@ -577,7 +573,7 @@ class ConfigurationCacheExternalProcessIntegrationTest extends AbstractConfigura
         runtimeExec().groovy                   | _
     }
 
-    def "using #snippetsFactory.summary in task of included plugin build is not a problem"(SnippetsFactory snippetsFactory) {
+    def "using #snippetsFactory.summary in task of included plugin build is not a problem"() {
         given:
         def snippets = snippetsFactory.newSnippets(execOperationsFixture)
         def includedBuildFile = testDirectory.file("included/build.gradle")
@@ -640,7 +636,7 @@ class ConfigurationCacheExternalProcessIntegrationTest extends AbstractConfigura
         runtimeExec().groovy                   | _
     }
 
-    def "using #snippetsFactory.summary in task up-to-date is not a problem"(SnippetsFactory snippetsFactory) {
+    def "using #snippetsFactory.summary in task up-to-date is not a problem"() {
         given:
         def snippets = snippetsFactory.newSnippets(execOperationsFixture)
         testDirectory.file("buildSrc/src/main/java/SneakyTask.java") << """
@@ -685,7 +681,7 @@ class ConfigurationCacheExternalProcessIntegrationTest extends AbstractConfigura
         runtimeExec().java                   | _
     }
 
-    def "using #snippetsFactory.summary in up-to-date task of buildSrc is not a problem"(SnippetsFactory snippetsFactory) {
+    def "using #snippetsFactory.summary in up-to-date task of buildSrc is not a problem"() {
         given:
         def snippets = snippetsFactory.newSnippets(execOperationsFixture)
         testDirectory.file("buildSrc/build.gradle") << """
